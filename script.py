@@ -4,7 +4,25 @@ import pandas as pd
 import shutil
 import re
 import subprocess
-import openpyxl
+from openpyxl import load_workbook
+
+
+def display_intro():
+    """Displays a beautifully formatted introduction."""
+    intro_text = """
+    ░▒▓██████▓▒░ ░▒▓███████▓▒░▒▓████████▓▒░      ░▒▓███████▓▒░   ░▒▓█▓▒░░▒▓███████▓▒░ 
+    ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░                    ░▒▓█▓▒░▒▓████▓▒░▒▓█▓▒░        
+    ░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░                    ░▒▓█▓▒░  ░▒▓█▓▒░▒▓█▓▒░        
+    ░▒▓█▓▒░       ░▒▓██████▓▒░░▒▓██████▓▒░        ░▒▓███████▓▒░   ░▒▓█▓▒░▒▓███████▓▒░  
+    ░▒▓█▓▒░             ░▒▓█▓▒░▒▓█▓▒░                    ░▒▓█▓▒░  ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+    ░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░                    ░▒▓█▓▒░  ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+    ░▒▓██████▓▒░░▒▓███████▓▒░░▒▓████████▓▒░      ░▒▓███████▓▒░   ░▒▓█▓▒░░▒▓██████▓▒░  
+                                                                                   
+                            Grading Setup Automation
+                            Created by: Iliya Mirzaei
+    -------------------------------------------------------------------------------------
+    """
+    print(intro_text)
 
 def extract_name(email):
     """Extracts first and last name from the email format x_y.z@q.d"""
@@ -13,7 +31,22 @@ def extract_name(email):
         return match.group(1).capitalize(), match.group(2).capitalize()
     return None, None
 
+def update_excel_file(file_path, mapping):
+    """Updates the Excel file without changing formatting, placing values in the next column."""
+    wb = load_workbook(file_path)
+    ws = wb.active  # Assuming a single-sheet Excel file
+
+    for row in ws.iter_rows():
+        for cell in row:
+            if cell.value in mapping:
+                next_col_index = cell.column + 1  # Move to the next column
+                ws.cell(row=cell.row, column=next_col_index, value=mapping[cell.value])
+
+    wb.save(file_path)
+
 def process_grading(grader_name, test_file_path, team_grading_path):
+    display_intro()
+
     # Read the team grading file which includes details about graders and teams
     df = pd.read_excel(team_grading_path)
 
@@ -71,11 +104,10 @@ def process_grading(grader_name, test_file_path, team_grading_path):
             "Grader Email:": grader_email
         }
 
-        for i in range(len(test_df)):
-            if test_df.iloc[i, 0] in mapping:
-                test_df.iloc[i, 1] = mapping[test_df.iloc[i, 0]]
+        update_excel_file(dest_test_file, mapping)
 
-        test_df.to_excel(dest_test_file, index=False, header=False)
+        print(f"Successfully updated grading file in {repo_name}")
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
