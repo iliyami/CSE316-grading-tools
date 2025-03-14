@@ -6,10 +6,6 @@ import re
 import subprocess
 import openpyxl
 
-def sanitize_folder_name(name):
-    """Remove or replace special characters from folder names."""
-    return re.sub(r'[\/:*?"<>|]', '_', name)
-
 def extract_name(email):
     """Extracts first and last name from the email format x_y.z@q.d"""
     match = re.match(r".*_(\w+)\.(\w+)@", email)
@@ -27,20 +23,33 @@ def process_grading(grader_name, test_file_path, team_grading_path):
     # Get unique groups
     unique_groups = filtered_df["group_name"].unique()
 
+    teams_path = os.path.join(os.getcwd(), 'teams')
+    os.makedirs(teams_path, exist_ok=True)
+
     for group in unique_groups:
-        # Sanitize folder name
-        sanitized_group_name = sanitize_folder_name(group)
-        
-        # Create folder for each group
-        group_folder = os.path.join(os.getcwd(), sanitized_group_name)
-        os.makedirs(group_folder, exist_ok=True)
-
-        # Copy the test file to the folder
-        dest_test_file = os.path.join(group_folder, os.path.basename(test_file_path))
-        shutil.copy(test_file_path, dest_test_file)
-
         # Get relevant group members
-        group_members = filtered_df[filtered_df["group_name"] == group]
+        group_members = filtered_df[filtered_df["group_name"] == group] 
+
+        # Extract repo URL and convert HTTP to SSH
+        repo_url_http = group_members["student_repository_url"].iloc[0]
+        repo_url_ssh = repo_url_http.replace("https://", "git@").replace("/", ":", 1)
+
+        # Define the directory name for the cloned repo
+        repo_name = repo_url_http.split("/")[-1].replace(".git", "")
+        repo_path = os.path.join(teams_path, repo_name)
+
+        # Clone the repository using SSH
+        if not os.path.exists(repo_path):  # Avoid cloning if the repo already exists
+            subprocess.run(["git", "clone", repo_url_ssh], cwd=teams_path)
+
+        # Ensure the repo was cloned successfully
+        if not os.path.exists(repo_path):
+            print(f"Failed to clone repository: {repo_url_ssh}")
+            continue
+
+        # Copy the test file to the cloned repo
+        dest_test_file = os.path.join(repo_path, os.path.basename(test_file_path))
+        shutil.copy(test_file_path, dest_test_file)
 
         # Extract student names
         students = []
@@ -67,11 +76,6 @@ def process_grading(grader_name, test_file_path, team_grading_path):
                 test_df.iloc[i, 1] = mapping[test_df.iloc[i, 0]]
 
         test_df.to_excel(dest_test_file, index=False, header=False)
-
-        # Clone the repository using SSH
-        repo_url_http = group_members["student_repository_url"].iloc[0]
-        repo_url_ssh = repo_url_http.replace("https://", "git@").replace("/", ":", 1)
-        subprocess.run(["git", "clone", repo_url_ssh], cwd=group_folder)
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
