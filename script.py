@@ -6,6 +6,10 @@ import re
 import subprocess
 import openpyxl
 
+def sanitize_folder_name(name):
+    """Remove or replace special characters from folder names."""
+    return re.sub(r'[\/:*?"<>|]', '_', name)
+
 def extract_name(email):
     """Extracts first and last name from the email format x_y.z@q.d"""
     match = re.match(r".*_(\w+)\.(\w+)@", email)
@@ -24,8 +28,11 @@ def process_grading(grader_name, test_file_path, team_grading_path):
     unique_groups = filtered_df["group_name"].unique()
 
     for group in unique_groups:
+        # Sanitize folder name
+        sanitized_group_name = sanitize_folder_name(group)
+        
         # Create folder for each group
-        group_folder = os.path.join(os.getcwd(), group)
+        group_folder = os.path.join(os.getcwd(), sanitized_group_name)
         os.makedirs(group_folder, exist_ok=True)
 
         # Copy the test file to the folder
