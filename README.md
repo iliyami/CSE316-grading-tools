@@ -1,54 +1,79 @@
-## **CSE316 Grading Setup Automation Script**
-This script automates the process of **grading student repositories** by:
-- Cloning the student's GitHub repository using **SSH**.
-- Copying a **grading template (`test_file.xlsx`)** into the cloned repo.
-- **Filling in grading details** (team name, students, grader info) while **preserving Excel formatting**.
-- Automating repository setup for **easy push access**.
+# **📌 Grading Setup Automation Script**
+
+```
+    ░▒▓██████▓▒░ ░▒▓███████▓▒░▒▓████████▓▒░      ░▒▓███████▓▒░   ░▒▓█▓▒░░▒▓███████▓▒░ 
+    ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░                    ░▒▓█▓▒░▒▓████▓▒░▒▓█▓▒░        
+    ░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░                    ░▒▓█▓▒░  ░▒▓█▓▒░▒▓█▓▒░        
+    ░▒▓█▓▒░       ░▒▓██████▓▒░░▒▓██████▓▒░        ░▒▓███████▓▒░   ░▒▓█▓▒░▒▓███████▓▒░  
+    ░▒▓█▓▒░             ░▒▓█▓▒░▒▓█▓▒░                    ░▒▓█▓▒░  ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+    ░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░▒▓█▓▒░                    ░▒▓█▓▒░  ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+    ░▒▓██████▓▒░░▒▓███████▓▒░░▒▓████████▓▒░      ░▒▓███████▓▒░   ░▒▓█▓▒░░▒▓██████▓▒░  
+                                                                                   
+                            GitHub Repository Grading Automation  
+                            👨‍💻 **Created by: Iliya Mirzaei**  
+```
+
+## **🔹 Overview**
+This script automates the **grading setup** for student repositories in **CSE316** by:  
+✅ **Cloning GitHub repositories** using SSH  
+✅ **Copying grading templates** into each repository  
+✅ **Preserving Excel formatting** while filling in team & student details  
+✅ **Extracting commit timestamps** to assess late submissions  
+✅ **Applying automatic penalties** based on a **configurable deadline policy**  
+✅ **Handling deadline extensions** for specific teams  
+✅ **Logging late submissions** in a dedicated `late_submissions.txt` file  
 
 ---
 
-## **Prerequisites**
-Ensure you have the following installed:
-- **Python 3.7+**
-- **Git** (configured with SSH access)
-- Python libraries: `pandas` and `openpyxl`
-
-Install dependencies with:
-```sh
-pip install -r requirements.txt
-```
+## **📥 Installation**
+1. **Install Python 3.7+** (if not already installed).  
+2. Install dependencies using:  
+   ```sh
+   pip install -r requirements.txt
+   ```
+3. Ensure your **SSH key is added to GitHub**:  
+   ```sh
+   ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+   ssh-add ~/.ssh/id_rsa
+   ssh -T git@github.com
+   ```
 
 ---
 
-## **Usage**
-Run the script with:
+## **🚀 Usage**
+Run the script with:  
 ```sh
-python grading_script.py "<Grader Name>" "<test_file.xlsx>" "<team_grading.xlsx>"
+python grading_script.py "<Grader Name>" "<test_file.xlsx>" "<team_grading.xlsx>" "<Deadline MM-DD-YYYY>" [Grace Period (default: 0 hours - no shifts!)] [extension_file.txt]
 ```
 
-### **Arguments**
+### **🔹 Arguments**
 | Argument | Description |
 |----------|------------|
 | `<Grader Name>` | The name of the grader (used for filtering). |
 | `<test_file.xlsx>` | Path to the test grading template file. |
-| `<team_grading.xlsx>` | Path to the Excel file containing student repositories and grading assignments. |
+| `<team_grading.xlsx>` | Path to the file containing student repositories and assignments. |
+| `<Deadline MM-DD-YYYY>` | The **official** submission deadline for grading. |
+| `[Grace Period]` (optional) | Extra hours (default: **0 hours**) where late penalties **do not apply**. |
+| `[extension_file.txt]` (optional) | Path to a file containing team-specific deadline extensions. |
 
 ---
 
-## **Expected File Formats**
-### **1. Team Grading File (`team_grading.xlsx`)**
-This file should contain the following columns:
+## **📑 File Formats**
+### **1️⃣ Team Grading File (`team_grading.xlsx`)**
+Must contain the following **columns**:
 
 | Column Name | Description |
 |-------------|------------|
 | **group_name** | The team name or project group. |
 | **Grader Name** | The assigned grader's name. |
 | **Grader Email** | The grader’s email address. |
-| **roster_identifier** | The student's email in the format `x_y.z@q.d` (from which first and last names are extracted). |
-| **student_repository_url** | The HTTP URL of the student’s GitHub repository. |
+| **roster_identifier** | The student’s email in `x_y.z@q.d` format (used for name extraction). |
+| **student_repository_url** | The **HTTP** GitHub repository URL (converted to SSH). |
 
-### **2. Test File (`test_file.xlsx`)**
-The grading template should contain placeholders in the first column, such as:
+---
+
+### **2️⃣ Test File (`test_file.xlsx`)**
+This **grading template** must contain the following placeholders in the first column:
 
 | Column 1 (Title) | Column 2 (Filled by Script) |
 |------------------|---------------------------|
@@ -58,66 +83,98 @@ The grading template should contain placeholders in the first column, such as:
 | **Grader Name:** | (Auto-filled) |
 | **Grader Email:** | (Auto-filled) |
 
-The script finds these labels and inserts the corresponding values in the **next column** while **preserving formatting**.
+> 📌 **The script fills these values while preserving Excel formatting.**  
 
 ---
 
-## **How It Works**
-1. **Reads the `team_grading.xlsx` file** and filters rows by the specified grader.
-2. **Converts the GitHub repo URL from HTTP to SSH** for push access.
-3. **Clones each team’s repository** (if not already cloned).
-4. **Copies the test grading file (`test_file.xlsx`)** into the cloned repository.
-5. **Extracts student names** from `roster_identifier` (email format: `x_y.z@q.d` → First: `y`, Last: `z`).
-6. **Fills in the grading template** (team name, students, grader info) in the **next column** while **keeping existing formatting**.
-7. **Saves the updated file** inside the cloned repository.
+### **3️⃣ Deadline Extension File (`extension_file.txt`)** _(Optional)_
+This file specifies **team-specific deadline extensions** in the following format:
 
----
-
-## **Example**
-```sh
-python grading_script.py "Iliya Mirzaei" "grading_template.xlsx" "team_grading.xlsx"
 ```
-### **What Happens?**
-- Finds teams graded by **Iliya Mirzaei**.
-- Clones each **student repository** using SSH.
-- Copies **grading_template.xlsx** into each repo.
-- Updates the grading file with team & student details.
-- Saves it inside the repo **without changing formatting**.
+Student 1 & Student 2 - My Team, 03/09/2025
+```
+- The **first part** (`Student 1 & Student 2`) is **for reference only**.  
+- The **team name** (`My Team`) **must match** the `group_name` from `team_grading.xlsx`.  
+- The **new deadline** (`03/09/2025`) is applied **instead of the original** deadline.
 
 ---
 
-## **Troubleshooting**
-### **1. GitHub Authentication Issues**
-Make sure your **SSH key is added to GitHub**:
+## **📊 Late Submission Policy**
+🚨 **Penalties are applied based on the last commit timestamp:**  
+- **⏳ On time** → **No penalty** (submitted within `[grace period]` after the deadline).  
+- **Late (6-30 hours)** → **Max Score: 90%**  
+- **Late (30-54 hours)** → **Max Score: 80%**  
+- **Late (54-78 hours)** → **Max Score: 70%**  
+- **Late (78-102 hours)** → **Max Score: 60%**  
+- **Late (102+ hours)** → **Max Score: 50%**  
+
+> 📝 **If a team has an extension,** the **effective deadline** is updated before penalties are applied.
+
+---
+
+## **📂 Late Submission Log (`late_submissions.txt`)**
+All late submissions are logged in **`late_submissions.txt`**, including:
+
+✅ **Team Name**  
+✅ **Submission Timestamp**  
+✅ **Original Deadline & Extension Deadline (if any)**  
+✅ **Time Difference from Deadline**  
+✅ **Final Submission Status & Score Cap**  
+
+### **📜 Example Log:**
+```
+📌 Late Submissions Log
+--------------------
+Team: My Team
+   - 🕒 Submission Timestamp: 2025-03-09 15:54:20
+   - 📝 Original Deadline: 2025-03-06 00:00:00
+   - ⏳ Time Difference: 15.91 hours
+   - 🚦 Submission Status: ⏳ Late (90% cap)
+   - 🆓 Extension Granted Until: 2025-03-09 00:00:00
+   - 🔴 Max Score Capped at 90%
+```
+
+---
+
+## **📌 Example Run**
+```sh
+python grading_script.py "Iliya Mirzaei" "grading_template.xlsx" "team_grading.xlsx" "03-06-2025" 6 "extensions.txt"
+```
+
+### **🔹 What Happens?**
+✅ Filters teams assigned to **Iliya Mirzaei** TA(Grader) 
+✅ Clones **each team's repository**  
+✅ Copies and fills in **grading templates**  
+✅ Extracts **last commit timestamps**  
+✅ Applies **late penalties (if any)**  
+✅ Logs **all late submissions** in `late_submissions.txt`  
+
+---
+
+## **🛠️ Troubleshooting**
+### **🔹 GitHub SSH Access Issues**
+```sh
+ssh -T git@github.com
+```
+If you see **"Permission denied"**, add your SSH key:  
 ```sh
 ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
 ssh-add ~/.ssh/id_rsa
 ```
-Test your SSH connection:
+
+### **🔹 Missing Dependencies?**
 ```sh
-ssh -T git@github.com
+pip install -r requirements.txt
 ```
 
-### **2. Missing Dependencies**
-If the script fails due to missing libraries, install them with:
-```sh
-pip install pandas openpyxl
-```
+---
 
-### **3. Formatting Issues in Excel**
-- Ensure your **grading template (`test_file.xlsx`)** is formatted correctly.
-- The script **does not modify styles** but only fills in values.
+## **👨‍💻 Contributing**
+Feel free to **open an issue** or **submit a pull request** for improvements!  
 
 ---
 
-## **Contributing**
-Feel free to open an issue or submit a pull request if you have improvements!
+## **📜 License**
+This script is **open-source** under the **MIT License**.
 
 ---
-
-## **License**
-This script is open-source under the **MIT License**.
-
----
-
-## Created by: **Iliya Mirzaei**
