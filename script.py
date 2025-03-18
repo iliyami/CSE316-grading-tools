@@ -57,7 +57,7 @@ def read_extensions(extension_file):
                 match = re.match(r".* - (.*), (\d{2}/\d{2}/\d{4})", line.strip())
                 if match:
                     group_name, deadline = match.groups()
-                    extensions[group_name] = datetime.strptime(deadline, "%m/%d/%Y")
+                    extensions[group_name] = datetime.strptime(deadline + " 23:59:59", "%m/%d/%Y %H:%M:%S")
     return extensions
 
 
@@ -99,7 +99,7 @@ def process_grading(grader_name, test_file_path, team_grading_path, deadline_str
     display_intro()
 
     # Convert deadline to datetime object
-    deadline = datetime.strptime(deadline_str, "%m-%d-%Y")
+    deadline = datetime.strptime(deadline_str + " 23:59:59", "%m-%d-%Y %H:%M:%S")
     extensions = read_extensions(extension_file) if extension_file else {}
 
     # Clear previous late submissions log
