@@ -95,7 +95,27 @@ def log_late_submission(log_data):
     with open(LATE_SUBMISSIONS_FILE, "a") as file:
         file.write(log_data + "\n")
 
-def process_grading(grader_name, test_file_path, team_grading_path, deadline_str, grace_period, extension_file):
+def get_nth_commit_timestamp(repo_path, skip_commits):
+    """Gets the timestamp of a commit after skipping the last X commits."""
+    try:
+        commit_hash = subprocess.check_output(
+            ["git", "rev-list", "--skip=" + str(skip_commits), "--max-count=1", "HEAD"],
+            cwd=repo_path
+        ).decode("utf-8").strip()
+
+        if commit_hash:
+            timestamp = subprocess.check_output(
+                ["git", "show", "-s", "--format=%ct", commit_hash],
+                cwd=repo_path
+            ).decode("utf-8").strip()
+            return datetime.fromtimestamp(int(timestamp))
+    except subprocess.CalledProcessError:
+        print(f"⚠️ Warning: Unable to find commit after skipping {skip_commits} commits in {repo_path}")
+    
+    return None
+
+
+def process_grading(grader_name, test_file_path, team_grading_path, deadline_str, grace_period, extension_file, skip_commits):
     display_intro()
 
     # Convert deadline to datetime object
@@ -167,7 +187,7 @@ def process_grading(grader_name, test_file_path, team_grading_path, deadline_str
 
         update_excel_file(dest_test_file, mapping)
 
-        submission_time = get_latest_commit_timestamp(repo_path)
+        submission_time = get_nth_commit_timestamp(repo_path, skip_commits)
         if submission_time:
             team_deadline = extensions.get(group, deadline)
             status, score_cap, diff_hours = calculate_penalty(submission_time, team_deadline, grace_period)
@@ -196,7 +216,7 @@ def process_grading(grader_name, test_file_path, team_grading_path, deadline_str
 
 if __name__ == "__main__":
     if len(sys.argv) < 5:
-        print("Usage: python script.py <Grader Name> <test_file.xlsx> <team_grading.xlsx> <Deadline MM-DD-YYYY> [Shift (default: 0 hours - no shift)] [extension_file.txt]")
+        print("Usage: python script.py <Grader Name> <test_file.xlsx> <team_grading.xlsx> <Deadline MM-DD-YYYY> [Shift (default: 0 hours - no shift)] [extension_file.txt] [Skip Commits]")
         sys.exit(1)
 
     grader_name = sys.argv[1]
@@ -205,5 +225,6 @@ if __name__ == "__main__":
     deadline_str = sys.argv[4]
     grace_period = int(sys.argv[5]) if len(sys.argv) > 5 else DEFAULT_DEADLINE_SHIFT
     extension_file = sys.argv[6] if len(sys.argv) > 6 else None
+    skip_commits = int(sys.argv[7]) if len(sys.argv) > 7 else 0
 
-    process_grading(grader_name, test_file_path, team_grading_path, deadline_str, grace_period, extension_file)
+    process_grading(grader_name, test_file_path, team_grading_path, deadline_str, grace_period, extension_file, skip_commits)
