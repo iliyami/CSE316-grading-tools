@@ -21,6 +21,7 @@ This script automates the **grading setup** for student repositories in **CSE316
 ✅ **Extracting commit timestamps** to assess late submissions  
 ✅ **Applying automatic penalties** based on a **configurable deadline policy**  
 ✅ **Handling deadline extensions** for specific teams  
+✅ **Skipping commits** only for deadline calculations  
 ✅ **Logging late submissions** in a dedicated `late_submissions.txt` file  
 
 ---
@@ -37,13 +38,16 @@ This script automates the **grading setup** for student repositories in **CSE316
    ssh-add ~/.ssh/id_rsa
    ssh -T git@github.com
    ```
+📌 **Important:** After generating your SSH key, you must add it to your **GitHub account** manually.  
+🔗 **GitHub SSH Key Setup Guide:** [Adding a new SSH key to your GitHub account](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)  
+
 
 ---
 
 ## **🚀 Usage**
 Run the script with:  
 ```sh
-python grading_script.py "<Grader Name>" "<test_file.xlsx>" "<team_grading.xlsx>" "<Deadline MM-DD-YYYY>" [Grace Period (default: 0 hours - no shifts!)] [extension_file.txt]
+python script.py "<Grader Name>" "<test_file.xlsx>" "<team_grading.xlsx>" "<Deadline MM-DD-YYYY>" [Grace Period (default: 0 hours)] [Skip Commits]
 ```
 
 ### **🔹 Arguments**
@@ -55,6 +59,7 @@ python grading_script.py "<Grader Name>" "<test_file.xlsx>" "<team_grading.xlsx>
 | `<Deadline MM-DD-YYYY>` | The **official** submission deadline for grading. |
 | `[Grace Period]` (optional) | Extra hours (default: **0 hours**) where late penalties **do not apply**. |
 | `[extension_file.txt]` (optional) | Path to a file containing team-specific deadline extensions. |
+| `[Skip Commits]` (optional) | **Number of commits to skip when calculating the deadline** (default: 0). |
 
 ---
 
@@ -112,6 +117,29 @@ Student 1 & Student 2 - My Team, 03/09/2025
 
 ---
 
+---
+
+## **🔄 Skipping Commits for Deadline Calculations**
+- **The script always clones the latest commit** from the repository.  
+- **However, for submission time calculations**, it checks an earlier commit by skipping `X` commits (if specified).  
+
+📌 **Example:**  
+If the last **4 commits** were:  
+```
+Commit A (Latest)  →  March 10, 2025
+Commit B           →  March 9, 2025
+Commit C           →  March 8, 2025
+Commit D           →  March 7, 2025
+```
+Running:
+```sh
+python script.py "John Doe" "grading_template.xlsx" "team_grading.xlsx" "03-06-2025" 6 "Extensions.txt" 2
+```
+- The script **clones the latest commit (A)**
+- But **uses Commit C's timestamp (March 8) for deadline penalties**.  
+
+---
+
 ## **📂 Late Submission Log (`late_submissions.txt`)**
 All late submissions are logged in **`late_submissions.txt`**, including:
 
@@ -142,7 +170,7 @@ python grading_script.py "Iliya Mirzaei" "grading_template.xlsx" "team_grading.x
 ```
 
 ### **🔹 What Happens?**
-✅ Filters teams assigned to **Iliya Mirzaei** TA(Grader) 
+✅ Filters teams assigned to **Iliya Mirzaei** TA(Grader)   
 ✅ Clones **each team's repository**  
 ✅ Copies and fills in **grading templates**  
 ✅ Extracts **last commit timestamps**  
@@ -152,15 +180,17 @@ python grading_script.py "Iliya Mirzaei" "grading_template.xlsx" "team_grading.x
 ---
 
 ## **🛠️ Troubleshooting**
-### **🔹 GitHub SSH Access Issues**
-```sh
-ssh -T git@github.com
-```
-If you see **"Permission denied"**, add your SSH key:  
-```sh
-ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
-ssh-add ~/.ssh/id_rsa
-```
+### **🔹 1. GitHub SSH Key Not Working?**
+Ensure you've **added your SSH key to your GitHub account**:  
+🔗 **GitHub SSH Key Setup Guide:** [Adding a new SSH key to your GitHub account](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)
+
+---
+
+### **🔹 2. `ssh-add` Fails? (SSH-Agent Not Running)**
+If `ssh-add` fails, it may be because the **SSH-agent** is not running.  
+🔗 **How to Fix:** [Start the SSH-agent](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/working-with-ssh-key-passphrases#start-the-ssh-agent)
+
+---
 
 ### **🔹 Missing Dependencies?**
 ```sh
