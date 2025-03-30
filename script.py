@@ -92,7 +92,7 @@ def calculate_penalty(submission_time, deadline, grace_period):
     
 def log_late_submission(log_data):
     """Logs late submission details into a file."""
-    with open(LATE_SUBMISSIONS_FILE, "a") as file:
+    with open(LATE_SUBMISSIONS_FILE, "a", encoding="utf-8") as file:
         file.write(log_data + "\n")
 
 def get_nth_commit_timestamp(repo_path, skip_commits):
